@@ -1,0 +1,48 @@
+name: CI-CD Batch Job
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to ECR
+      run: |
+        aws ecr get-login-password \
+        | docker login --username AWS \
+        --password-stdin ${{ secrets.ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+    - name: Build Docker Image
+      run: docker build -t batch-job .
+
+    - name: Tag Image
+      run: |
+        docker tag batch-job:latest \
+        ${{ secrets.ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+
+    - name: Push to ECR
+      run: |
+        docker push \
+        ${{ secrets.ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+
+    - name: Run ECS Task
+      run: |
+        aws ecs run-task \
+          --cluster batch-job-cluster \
+          --launch-type FARGATE \
+          --task-definition batch-job-task \
+          --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],assignPublicIp=ENABLED}"
+		  
