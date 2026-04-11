@@ -2,7 +2,9 @@ name: CI-CD Batch Job
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -15,8 +17,8 @@ jobs:
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v2
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Login to ECR
@@ -44,5 +46,5 @@ jobs:
           --cluster genai-s3-cluster \
           --launch-type FARGATE \
           --task-definition genai-s3-task \
-          --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],assignPublicIp=ENABLED}"
-		  
+          --network-configuration "awsvpcConfiguration={subnets=[subnet-0abc1234],assignPublicIp=ENABLED}"
+
